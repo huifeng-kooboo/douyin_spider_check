@@ -19,6 +19,8 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
+__all__ = ['DouYinUtil']
+
 class DouYinUtil(object):
 
     def __init__(self, sec_uid: str):
