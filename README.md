@@ -23,6 +23,7 @@ python main.py
 - `/download_videos` - 接收sec_id_list创建下载线程（POST）
 - `/thread_status/<thread_id>` - 获取特定线程状态（GET）
 - `/all_threads` - 获取所有线程状态（GET）
+- `/user_videos/<sec_id>` - 获取用户所有视频信息（GET）
 
 ## 特性
 
@@ -30,6 +31,37 @@ python main.py
 - 绑定到8000端口
 - 多线程下载抖音视频
 - 线程状态跟踪
+- SQLite数据库存储用户和视频信息
+
+## 数据库结构
+
+应用使用SQLite数据库存储信息，包含以下表：
+
+### 用户表 (User)
+- `id`: 主键
+- `sec_id`: 抖音用户的sec_id
+- `created_at`: 创建时间
+
+### 下载任务表 (DownloadTask)
+- `id`: 主键
+- `thread_id`: 线程ID
+- `user_id`: 关联到User表的外键
+- `status`: 任务状态(准备中/运行中/已完成/出错)
+- `created_at`: 创建时间
+- `updated_at`: 更新时间
+- `error`: 错误信息(如果有的话)
+
+### 视频表 (Video)
+- `id`: 主键
+- `video_id`: 抖音视频ID
+- `user_id`: 关联到User表的外键
+- `task_id`: 关联到DownloadTask表的外键
+- `title`: 视频标题
+- `download_url`: 下载链接
+- `file_path`: 本地文件路径
+- `status`: 下载状态(待下载/下载中/已下载/出错)
+- `created_at`: 创建时间
+- `updated_at`: 更新时间
 
 ## 工具函数
 
@@ -109,6 +141,34 @@ GET `/all_threads`
   "线程ID2": {
     ...
   }
+}
+```
+
+#### 获取用户视频列表
+
+GET `/user_videos/<sec_id>`
+
+响应:
+```json
+{
+  "user": {
+    "id": 1,
+    "sec_id": "用户sec_id",
+    "created_at": "创建时间"
+  },
+  "videos": [
+    {
+      "id": 1,
+      "video_id": "视频ID",
+      "title": "视频标题",
+      "download_url": "下载链接",
+      "file_path": "本地文件路径",
+      "status": "下载状态",
+      "created_at": "创建时间",
+      "updated_at": "更新时间"
+    },
+    ...
+  ]
 }
 ```
 
