@@ -15,15 +15,28 @@ python main.py
 ```
 
 服务器将在 http://localhost:8000 上启动。
+Swagger API文档访问地址: http://localhost:8000/swagger
+
+## API文档
+
+应用集成了Swagger，提供了自动化的API文档。可以通过 `/swagger` 路径访问API文档界面，在那里您可以:
+
+- 查看所有可用的API端点
+- 了解每个API的参数和响应格式
+- 直接在浏览器中测试API调用
+- 查看数据模型结构
 
 ## 可用路由
 
+### 基础路由
 - `/` - 主页
 - `/hello` - 问候页面
-- `/download_videos` - 接收sec_id_list创建下载线程（POST）
-- `/thread_status/<thread_id>` - 获取特定线程状态（GET）
-- `/all_threads` - 获取所有线程状态（GET）
-- `/user_videos/<sec_id>` - 获取用户所有视频信息（GET）
+
+### REST API路由
+- `/download` - 接收sec_id_list创建下载线程（POST）
+- `/task/<thread_id>` - 获取特定线程状态（GET）
+- `/task/all` - 获取所有线程状态（GET）
+- `/video/user/<sec_id>` - 获取用户所有视频信息（GET）
 
 ## 特性
 
@@ -32,6 +45,7 @@ python main.py
 - 多线程下载抖音视频
 - 线程状态跟踪
 - SQLite数据库存储用户和视频信息
+- Swagger API文档自动生成
 
 ## 数据库结构
 
@@ -92,7 +106,7 @@ else:
 
 #### 创建下载任务
 
-POST `/download_videos`
+POST `/download`
 
 请求体:
 ```json
@@ -111,7 +125,7 @@ POST `/download_videos`
 
 #### 获取线程状态
 
-GET `/thread_status/<thread_id>`
+GET `/task/<thread_id>`
 
 响应:
 ```json
@@ -126,7 +140,7 @@ GET `/thread_status/<thread_id>`
 
 #### 获取所有线程状态
 
-GET `/all_threads`
+GET `/task/all`
 
 响应:
 ```json
@@ -146,7 +160,7 @@ GET `/all_threads`
 
 #### 获取用户视频列表
 
-GET `/user_videos/<sec_id>`
+GET `/video/user/<sec_id>`
 
 响应:
 ```json
@@ -174,15 +188,4 @@ GET `/user_videos/<sec_id>`
 
 ## 使用示例
 
-在`test.py`中提供了使用示例：
-
-```python
-# 使用API下载视频
-test_api_download()
-
-# 监控线程状态
-monitor_download_progress(thread_id)
-
-# 获取所有线程状态
-get_all_threads_status()
-```
+在`test.py`中提供了使用示例，或者您可以直接通过Swagger UI进行API测试。

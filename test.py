@@ -24,7 +24,7 @@ def test_api_download():
     
     # 调用下载接口
     response = requests.post(
-        "http://localhost:8000/download_videos",
+        "http://localhost:8000/download",
         json={"sec_id_list": sec_ids},
         headers={"Content-Type": "application/json"}
     )
@@ -49,7 +49,7 @@ def monitor_download_progress(thread_id, interval=5):
     
     # 循环检查线程状态
     while True:
-        response = requests.get(f"http://localhost:8000/thread_status/{thread_id}")
+        response = requests.get(f"http://localhost:8000/task/{thread_id}")
         
         if response.status_code == 200:
             status = response.json()
@@ -68,7 +68,7 @@ def monitor_download_progress(thread_id, interval=5):
 
 # 获取所有线程状态
 def get_all_threads_status():
-    response = requests.get("http://localhost:8000/all_threads")
+    response = requests.get("http://localhost:8000/task/all")
     if response.status_code == 200:
         all_threads = response.json()
         print("所有线程状态:")
@@ -76,11 +76,29 @@ def get_all_threads_status():
     else:
         print("获取所有线程状态失败:", response.text)
 
+# 获取用户视频列表
+def get_user_videos(sec_id):
+    response = requests.get(f"http://localhost:8000/video/user/{sec_id}")
+    if response.status_code == 200:
+        user_videos = response.json()
+        print(f"用户 {sec_id} 的视频列表:")
+        print(json.dumps(user_videos, ensure_ascii=False, indent=2))
+    else:
+        print("获取用户视频列表失败:", response.text)
+
+# 打开Swagger文档
+def open_swagger_doc():
+    import webbrowser
+    webbrowser.open("http://localhost:8000/swagger")
+    print("已在浏览器打开Swagger文档")
+
 if __name__ == "__main__":
     # 取消下面的注释来运行相应的测试
     # test_download_single_user()  # 使用原始方法下载单个用户视频
     # test_api_download()  # 使用API接口下载多个用户视频
     # get_all_threads_status()  # 获取所有线程状态
+    # get_user_videos("MS4wLjABAAAAah62GbBN8fQXHTYIT18z6BV3HB5wt4_H5tYyYn_3Npy56HxUx3uEOk5a5VIL5_Bn")  # 获取用户视频列表
+    # open_swagger_doc()  # 打开Swagger文档
     
     print("请取消注释选择要运行的测试函数")
 
