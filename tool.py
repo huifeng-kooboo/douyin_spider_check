@@ -2,6 +2,17 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 import os
+from util.douyin_util import DouYinUtil
+
+
+def download_user_videos(sec_uid):
+    dy_util = DouYinUtil(sec_uid=sec_uid)
+    all_video_list = dy_util.get_all_videos()
+    for video_id in all_video_list:
+        video_info = dy_util.get_video_detail_info(video_id)
+        if video_info['is_video'] is True:
+            print(f"视频下载链接:{video_info['link']}")
+            dy_util.download_video(video_info['link'], f"{video_id}.mp4")
 
 def compare_video(video_path1, video_path2, similarity_threshold=95):
     """

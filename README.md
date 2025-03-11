@@ -20,11 +20,16 @@ python main.py
 
 - `/` - 主页
 - `/hello` - 问候页面
+- `/download_videos` - 接收sec_id_list创建下载线程（POST）
+- `/thread_status/<thread_id>` - 获取特定线程状态（GET）
+- `/all_threads` - 获取所有线程状态（GET）
 
 ## 特性
 
 - 支持热更新（在开发模式下，修改代码后自动重启服务器）
 - 绑定到8000端口
+- 多线程下载抖音视频
+- 线程状态跟踪
 
 ## 工具函数
 
@@ -50,3 +55,74 @@ else:
 
 比较逻辑：
 当两个视频中有超过指定阈值（默认95%）的帧图像相似时，返回True，否则返回False。
+
+### 视频下载接口
+
+#### 创建下载任务
+
+POST `/download_videos`
+
+请求体:
+```json
+{
+  "sec_id_list": ["用户sec_id1", "用户sec_id2", ...]
+}
+```
+
+响应:
+```json
+{
+  "message": "下载任务已创建",
+  "thread_ids": ["线程ID1", "线程ID2", ...]
+}
+```
+
+#### 获取线程状态
+
+GET `/thread_status/<thread_id>`
+
+响应:
+```json
+{
+  "sec_id": "用户sec_id",
+  "status": "准备中|运行中|已完成|出错",
+  "created_at": "线程创建时间",
+  "videos_downloaded": 0,
+  "error": null
+}
+```
+
+#### 获取所有线程状态
+
+GET `/all_threads`
+
+响应:
+```json
+{
+  "线程ID1": {
+    "sec_id": "用户sec_id",
+    "status": "状态",
+    "created_at": "线程创建时间",
+    "videos_downloaded": 0,
+    "error": null
+  },
+  "线程ID2": {
+    ...
+  }
+}
+```
+
+## 使用示例
+
+在`test.py`中提供了使用示例：
+
+```python
+# 使用API下载视频
+test_api_download()
+
+# 监控线程状态
+monitor_download_progress(thread_id)
+
+# 获取所有线程状态
+get_all_threads_status()
+```
