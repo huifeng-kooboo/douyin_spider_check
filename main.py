@@ -14,4 +14,4 @@ if __name__ == '__main__':
     # 启用调试模式实现热更新
     app.debug = True
     # 绑定到8000端口
-    app.run(host='0.0.0.0', port=8000)
+    app.run(host='0.0.0.0', port=8000) 
