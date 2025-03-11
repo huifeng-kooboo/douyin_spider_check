@@ -46,6 +46,22 @@ Swagger API文档访问地址: http://localhost:8000/swagger
 - 线程状态跟踪
 - SQLite数据库存储用户和视频信息
 - Swagger API文档自动生成
+- 跨域请求支持（CORS）
+
+## 跨域支持
+
+应用已集成Flask-CORS，支持跨域资源共享（CORS），允许来自不同域、不同端口或不同协议的前端应用访问API。默认配置允许所有域的访问。
+
+```python
+# main.py中的配置
+CORS(app, resources={r"/*": {"origins": "*"}})
+```
+
+如需更精确的控制，可以修改origins参数为特定域名列表：
+
+```python
+CORS(app, resources={r"/*": {"origins": ["http://example.com", "https://example2.com"]}})
+```
 
 ## 数据库结构
 

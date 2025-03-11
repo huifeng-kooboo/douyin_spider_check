@@ -6,8 +6,12 @@ from datetime import datetime
 from tool import download_user_videos
 from flask_sqlalchemy import SQLAlchemy
 from flask_restx import Api, Resource, fields, Namespace
+from flask_cors import CORS
 
 app = Flask(__name__)
+
+# 配置跨域请求支持
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # 配置SQLite数据库
 basedir = os.path.abspath(os.path.dirname(__file__))
