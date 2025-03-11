@@ -3,16 +3,90 @@ import numpy as np
 from tqdm import tqdm
 import os
 from util.douyin_util import DouYinUtil
+import sys
+
+# 添加项目根目录到Python路径，以便从工具脚本中导入main模块中的数据库模型
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from main import db, Video
+except ImportError:
+    # 在单独运行tool.py时提供空的模拟对象
+    class MockDB:
+        def session(self):
+            return self
+        def add(self, obj):
+            pass
+        def commit(self):
+            pass
+    
+    class MockVideo:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+    
+    db = MockDB()
+    Video = MockVideo
 
 
-def download_user_videos(sec_uid):
+def download_user_videos(sec_uid, task_id=None, user_id=None):
+    """
+    下载抖音用户的所有视频
+    
+    参数:
+        sec_uid (str): 抖音用户的sec_uid
+        task_id (int, optional): 下载任务ID，用于数据库记录
+        user_id (int, optional): 用户ID，用于数据库记录
+        
+    返回:
+        list: 下载的视频信息列表
+    """
     dy_util = DouYinUtil(sec_uid=sec_uid)
     all_video_list = dy_util.get_all_videos()
+    downloaded_videos = []
+    
     for video_id in all_video_list:
-        video_info = dy_util.get_video_detail_info(video_id)
-        if video_info['is_video'] is True:
-            print(f"视频下载链接:{video_info['link']}")
-            dy_util.download_video(video_info['link'], f"{video_id}.mp4")
+        try:
+            video_info = dy_util.get_video_detail_info(video_id)
+            
+            if video_info['is_video'] is True:
+                print(f"视频下载链接:{video_info['link']}")
+                file_path = f"{video_id}.mp4"
+                
+                # 下载视频
+                download_success = dy_util.download_video(video_info['link'], file_path)
+                
+                # 记录视频信息
+                video_data = {
+                    'video_id': video_id,
+                    'title': video_info.get('title', ''),
+                    'download_url': video_info['link'],
+                    'file_path': file_path,
+                    'status': '已下载' if download_success else '下载失败'
+                }
+                downloaded_videos.append(video_data)
+                
+                # 如果提供了数据库参数，则保存到数据库
+                if task_id is not None and user_id is not None:
+                    try:
+                        # 创建视频记录
+                        db_video = Video(
+                            video_id=video_id,
+                            user_id=user_id,
+                            task_id=task_id,
+                            title=video_info.get('title', ''),
+                            download_url=video_info['link'],
+                            file_path=file_path,
+                            status='已下载' if download_success else '下载失败'
+                        )
+                        db.session.add(db_video)
+                        db.session.commit()
+                    except Exception as e:
+                        print(f"保存视频记录到数据库时出错: {str(e)}")
+        except Exception as e:
+            print(f"处理视频 {video_id} 时出错: {str(e)}")
+    
+    return downloaded_videos
+
 
 def compare_video(video_path1, video_path2, similarity_threshold=95):
     """

@@ -3,6 +3,7 @@ certifi==2025.1.31
 charset-normalizer==3.4.1
 click==8.1.8
 Flask==3.1.0
+Flask-SQLAlchemy==3.1.1
 idna==3.10
 importlib_metadata==8.6.1
 itsdangerous==2.2.0
@@ -16,6 +17,7 @@ python-dateutil==2.9.0.post0
 pytz==2025.1
 requests==2.32.3
 six==1.17.0
+SQLAlchemy==2.0.27
 tqdm==4.66.1
 tzdata==2025.1
 urllib3==2.3.0
