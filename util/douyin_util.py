@@ -6,8 +6,8 @@ import urllib.request
 import argparse
 import pandas as pd
 
-from tools.util import get_current_time_format, generate_url_with_xbs, sleep_random
-from config import IS_SAVE, SAVE_FOLDER, USER_SEC_UID, IS_WRITE_TO_CSV, LOGIN_COOKIE, CSV_FILE_NAME
+from util.tools.util import get_current_time_format, generate_url_with_xbs, sleep_random
+from util.config import IS_SAVE, SAVE_FOLDER, USER_SEC_UID, IS_WRITE_TO_CSV, LOGIN_COOKIE, CSV_FILE_NAME
 import requests
 
 import logging
@@ -61,13 +61,15 @@ class DouYinUtil(object):
             self.video_api_url = f'https://www.douyin.com/aweme/v1/web/aweme/post/?aid=6383&sec_user_id={self.sec_uid}&count=35&max_cursor={self.cursor}&cookie_enabled=true&platform=PC&downlink=10'
             xbs = generate_url_with_xbs(self.video_api_url, self.api_headers.get('User-Agent'))
             user_video_url = self.video_api_url + '&X-Bogus=' + xbs
-            user_info = self.get_user_video_info(user_video_url)
+            print(f'访问url:{user_video_url}')
+            user_info = self.get_user_video_info(user_video_url)   
             aweme_list = user_info['aweme_list']
             for aweme_info in aweme_list:
                 self.video_info_list.append(aweme_info)
                 self.video_info_dict.setdefault(aweme_info['aweme_id'], aweme_info)
                 self.videos_list.append(aweme_info['aweme_id'])
             if int(user_info['has_more']) == 0:
+                print(f'stop_more')
                 self.stop_flag = True
             else:
                 self.cursor = user_info['max_cursor']
