@@ -3,6 +3,7 @@ import numpy as np
 from tqdm import tqdm
 import os
 from util.douyin_util import DouYinUtil
+from util.config import IS_SAVE, SAVE_FOLDER, USER_SEC_UID, IS_WRITE_TO_CSV, LOGIN_COOKIE, CSV_FILE_NAME
 import sys
 
 # 添加项目根目录到Python路径，以便从工具脚本中导入main模块中的数据库模型
@@ -180,3 +181,154 @@ def compare_video(video_path1, video_path2, similarity_threshold=95):
     
     # 判断是否超过阈值
     return similarity_percentage >= similarity_threshold
+
+
+def compare_videos_batch(videos_dir, similarity_threshold=95, output_csv=None):
+    """
+    批量比较多个视频之间的相似度，找出相似视频对
+    
+    参数:
+        videos_dir (str): 包含视频文件的目录
+        similarity_threshold (float): 相似度阈值，默认95%
+        output_csv (str): 输出CSV文件路径，默认为None
+        
+    返回:
+        list: 相似视频对的列表，每个元素为(video1, video2, similarity)元组
+    """
+    import itertools
+    import csv
+    from datetime import datetime
+    
+    # 确保目录存在
+    if not os.path.exists(videos_dir):
+        print(f"错误：视频目录 {videos_dir} 不存在")
+        return []
+    
+    # 查找目录中的所有MP4文件
+    video_files = []
+    for root, _, files in os.walk(videos_dir):
+        for file in files:
+            if file.lower().endswith('.mp4'):
+                video_files.append(os.path.join(root, file))
+    
+    if not video_files:
+        print(f"警告：在 {videos_dir} 中未找到MP4视频文件")
+        return []
+    
+    print(f"找到 {len(video_files)} 个视频文件，开始比较...")
+    
+    # 存储相似视频对
+    similar_pairs = []
+    
+    # 比较所有可能的视频对
+    total_comparisons = len(list(itertools.combinations(video_files, 2)))
+    completed = 0
+    
+    for i, video1 in enumerate(video_files):
+        for video2 in video_files[i+1:]:
+            completed += 1
+            print(f"正在比较 ({completed}/{total_comparisons}): {os.path.basename(video1)} 与 {os.path.basename(video2)}")
+            
+            try:
+                # 使用compare_video函数比较两个视频
+                is_similar = compare_video(video1, video2, similarity_threshold)
+                
+                if is_similar:
+                    # 提取视频ID（假设文件名就是视频ID加扩展名）
+                    video1_id = os.path.basename(video1).replace('.mp4', '')
+                    video2_id = os.path.basename(video2).replace('.mp4', '')
+                    
+                    print(f"发现相似视频: {video1_id} 和 {video2_id}")
+                    similar_pairs.append((video1_id, video2_id))
+            except Exception as e:
+                print(f"比较视频时出错: {str(e)}")
+    
+    # 如果指定了输出CSV文件，则保存结果
+    if output_csv and similar_pairs:
+        try:
+            with open(output_csv, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                # 写入标题行
+                writer.writerow(['视频ID1', '视频ID2', '比较时间'])
+                
+                # 写入数据行
+                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                for video1_id, video2_id in similar_pairs:
+                    writer.writerow([video1_id, video2_id, current_time])
+                
+                print(f"已将 {len(similar_pairs)} 对相似视频记录到 {output_csv}")
+        except Exception as e:
+            print(f"保存CSV文件时出错: {str(e)}")
+    
+    return similar_pairs
+
+
+def batch_download_and_compare(sec_id_list, similarity_threshold=95, output_csv=None):
+    """
+    批量下载多个用户的视频并进行相似度比较
+    
+    参数:
+        sec_id_list (list): 抖音用户sec_id列表
+        similarity_threshold (float): 相似度阈值，默认95%
+        output_csv (str): 输出CSV文件路径，默认为None
+        
+    返回:
+        dict: 包含下载和比较结果的字典
+    """
+    import os
+    from datetime import datetime
+    
+    result = {
+        'download_count': 0,
+        'similar_pairs': [],
+        'error': None
+    }
+    
+    # 开始时间
+    start_time = datetime.now()
+    print(f"开始批量下载和比较任务，时间: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # 下载所有用户的视频
+    all_downloaded_videos = []
+    
+    for sec_id in sec_id_list:
+        try:
+            print(f"下载用户 {sec_id} 的视频...")
+            videos = download_user_videos(sec_id)
+            if videos:
+                all_downloaded_videos.extend(videos)
+                result['download_count'] += len(videos)
+                print(f"成功下载用户 {sec_id} 的 {len(videos)} 个视频")
+            else:
+                print(f"用户 {sec_id} 没有可下载的视频")
+        except Exception as e:
+            print(f"下载用户 {sec_id} 的视频时出错: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
+    # 如果没有下载到视频，则提前结束
+    if not all_downloaded_videos:
+        result['error'] = "未成功下载任何视频"
+        return result
+    
+    # 确定视频存储的目录
+    video_dir = os.path.join(SAVE_FOLDER)
+    
+    # 比较视频相似度
+    try:
+        print(f"开始比较 {result['download_count']} 个视频的相似度...")
+        similar_pairs = compare_videos_batch(video_dir, similarity_threshold, output_csv)
+        result['similar_pairs'] = similar_pairs
+        print(f"相似度比较完成，发现 {len(similar_pairs)} 对相似视频")
+    except Exception as e:
+        print(f"比较视频相似度时出错: {str(e)}")
+        result['error'] = str(e)
+        import traceback
+        traceback.print_exc()
+    
+    # 结束时间
+    end_time = datetime.now()
+    duration = (end_time - start_time).total_seconds()
+    print(f"批量下载和比较任务结束，总用时: {duration:.2f} 秒")
+    
+    return result

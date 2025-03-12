@@ -36,6 +36,7 @@ api = Api(
 ns_download = api.namespace('download', description='下载视频相关操作')
 ns_task = api.namespace('task', description='任务状态相关操作')
 ns_video = api.namespace('video', description='视频信息相关操作')
+ns_compare = api.namespace('compare', description='视频对比相关操作')
 
 # 定义数据模型
 class User(db.Model):
@@ -154,6 +155,20 @@ user_videos_model = api.model('UserVideos', {
         'created_at': fields.String(description='创建时间')
     })),
     'videos': fields.List(fields.Nested(video_info_model))
+})
+
+# 定义批量视频对比的API模型
+video_compare_request_model = api.model('VideoCompareRequest', {
+    'sec_id_list': fields.List(fields.String, required=True, description='抖音用户sec_id列表'),
+    'similarity_threshold': fields.Float(description='相似度阈值百分比，默认为95%', default=95.0),
+    'output_csv': fields.String(description='输出CSV文件路径，不指定则使用默认路径')
+})
+
+video_compare_response_model = api.model('VideoCompareResponse', {
+    'message': fields.String(description='操作结果消息'),
+    'task_id': fields.String(description='任务ID'),
+    'download_count': fields.Integer(description='下载的视频数量'),
+    'similar_pairs_count': fields.Integer(description='发现的相似视频对数量')
 })
 
 # 主页接口
@@ -322,6 +337,98 @@ class UserVideos(Resource):
             "videos": [video.to_dict() for video in videos]
         }
 
+# 批量视频对比API
+@ns_compare.route('')
+class CompareVideos(Resource):
+    @ns_compare.expect(video_compare_request_model)
+    @ns_compare.response(200, '成功创建视频对比任务', video_compare_response_model)
+    @ns_compare.response(400, '请求参数错误')
+    @ns_compare.response(500, '服务器内部错误')
+    def post(self):
+        """
+        创建视频对比任务
+        
+        下载指定用户的所有视频，并比较它们之间的相似度，将相似度超过阈值的视频对保存到CSV文件
+        """
+        try:
+            data = request.json
+            if not data or 'sec_id_list' not in data:
+                return {'error': '请提供sec_id_list参数'}, 400
+            
+            sec_id_list = data['sec_id_list']
+            if not isinstance(sec_id_list, list) or len(sec_id_list) == 0:
+                return {'error': 'sec_id_list必须是非空列表'}, 400
+            
+            # 获取可选参数
+            similarity_threshold = data.get('similarity_threshold', 95.0)
+            output_csv = data.get('output_csv', None)
+            
+            # 如果未指定输出CSV文件，则使用默认路径
+            if not output_csv:
+                import os
+                from datetime import datetime
+                csv_dir = os.path.join(basedir, 'reports')
+                if not os.path.exists(csv_dir):
+                    os.makedirs(csv_dir)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_csv = os.path.join(csv_dir, f'similar_videos_{timestamp}.csv')
+            
+            # 创建任务ID
+            task_id = str(uuid.uuid4())
+            
+            # 创建线程执行对比任务
+            thread = threading.Thread(
+                target=compare_task,
+                args=(task_id, sec_id_list, similarity_threshold, output_csv)
+            )
+            thread.daemon = True
+            
+            # 初始化线程信息
+            threads_info[task_id] = {
+                "type": "compare",
+                "sec_id_list": sec_id_list,
+                "status": "准备中",
+                "created_at": datetime.now().isoformat(),
+                "thread": thread,
+                "download_count": 0,
+                "similar_pairs_count": 0,
+                "output_csv": output_csv,
+                "error": None
+            }
+            
+            # 启动线程
+            thread.start()
+            
+            return {
+                "message": "视频对比任务已创建",
+                "task_id": task_id,
+                "download_count": 0,
+                "similar_pairs_count": 0
+            }
+        
+        except Exception as e:
+            return {'error': str(e)}, 500
+
+# 获取视频对比任务状态
+@ns_compare.route('/<string:task_id>')
+@ns_compare.param('task_id', '任务ID')
+class CompareTaskStatus(Resource):
+    @ns_compare.response(200, '成功获取任务状态')
+    @ns_compare.response(404, '未找到指定的任务ID')
+    def get(self, task_id):
+        """
+        获取特定视频对比任务的状态
+        
+        根据任务ID返回对比任务的状态、进度等信息
+        """
+        if task_id not in threads_info or threads_info[task_id].get('type') != 'compare':
+            return {'error': '未找到指定的视频对比任务'}, 404
+        
+        thread_info = threads_info[task_id].copy()
+        thread_info.pop('thread', None)  # 移除线程对象，无法序列化
+        
+        return thread_info
+
 def download_task(thread_id, sec_id, user_id, task_id):
     # 在线程内创建应用上下文
     with app.app_context():
@@ -363,6 +470,52 @@ def download_task(thread_id, sec_id, user_id, task_id):
                     task.status = "出错"
                     task.error = str(e)
                     db.session.commit()
+
+def compare_task(task_id, sec_id_list, similarity_threshold, output_csv):
+    """
+    视频对比任务处理函数，在新线程中执行
+    
+    参数:
+        task_id (str): 任务ID
+        sec_id_list (list): 抖音用户sec_id列表
+        similarity_threshold (float): 相似度阈值
+        output_csv (str): 输出CSV文件路径
+    """
+    # 在线程内创建应用上下文
+    with app.app_context():
+        try:
+            print(f"开始执行视频对比任务: task_id={task_id}")
+            # 更新线程状态为运行中
+            threads_info[task_id]["status"] = "运行中"
+            
+            # 导入批量下载和比较函数
+            from tool import batch_download_and_compare
+            
+            # 调用批量下载和比较函数
+            result = batch_download_and_compare(sec_id_list, similarity_threshold, output_csv)
+            
+            # 更新线程信息
+            threads_info[task_id]["download_count"] = result.get('download_count', 0)
+            threads_info[task_id]["similar_pairs_count"] = len(result.get('similar_pairs', []))
+            threads_info[task_id]["output_csv"] = output_csv
+            
+            # 更新线程状态为已完成
+            if result.get('error'):
+                threads_info[task_id]["status"] = "出错"
+                threads_info[task_id]["error"] = result['error']
+                print(f"视频对比任务出错: {result['error']}")
+            else:
+                threads_info[task_id]["status"] = "已完成"
+                print(f"视频对比任务完成: 下载了 {result.get('download_count', 0)} 个视频，找到 {len(result.get('similar_pairs', []))} 对相似视频")
+        
+        except Exception as e:
+            print(f"视频对比任务执行出错: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            # 更新线程状态为出错
+            threads_info[task_id]["status"] = "出错"
+            threads_info[task_id]["error"] = str(e)
 
 if __name__ == '__main__':
     # 启用调试模式实现热更新
