@@ -67,22 +67,22 @@ def download_user_videos(sec_uid, task_id=None, user_id=None):
                 downloaded_videos.append(video_data)
                 
                 # 如果提供了数据库参数，则保存到数据库
-                if task_id is not None and user_id is not None:
-                    try:
-                        # 创建视频记录
-                        db_video = Video(
-                            video_id=video_id,
-                            user_id=user_id,
-                            task_id=task_id,
-                            title=video_info.get('title', ''),
-                            download_url=video_info['link'],
-                            file_path=file_path,
-                            status='已下载' if download_success else '下载失败'
-                        )
-                        db.session.add(db_video)
-                        db.session.commit()
-                    except Exception as e:
-                        print(f"保存视频记录到数据库时出错: {str(e)}")
+                # if task_id is not None and user_id is not None:
+                #     try:
+                #         # 创建视频记录
+                #         db_video = Video(
+                #             video_id=video_id,
+                #             user_id=user_id,
+                #             task_id=task_id,
+                #             title=video_info.get('title', ''),
+                #             download_url=video_info['link'],
+                #             file_path=file_path,
+                #             status='已下载' if download_success else '下载失败'
+                #         )
+                #         db.session.add(db_video)
+                #         db.session.commit()
+                #     except Exception as e:
+                #         print(f"保存视频记录到数据库时出错: {str(e)}")
         except Exception as e:
             print(f"处理视频 {video_id} 时出错: {str(e)}")
     

@@ -99,6 +99,7 @@ class DouYinUtil(object):
         headers_ = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
             'Referer': video_url,
+            'cookie': LOGIN_COOKIE
         }
         response = requests.get(video_url, stream=True, headers=headers_)
 
@@ -228,3 +229,4 @@ if __name__ == '__main__':
             logger.info("编码错误, 该数据无法写到文件中, 直接忽略该数据")
     except Exception as e:
         logger.info(e)
+
