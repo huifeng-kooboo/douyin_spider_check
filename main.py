@@ -166,6 +166,11 @@ def home():
 def hello():
     return '你好，世界！'
 
+# 监控页面接口
+@app.route('/monitor')
+def monitor():
+    return render_template('monitor.html')
+
 # 视频下载接口
 @ns_download.route('')
 class DownloadVideos(Resource):
@@ -318,42 +323,46 @@ class UserVideos(Resource):
         }
 
 def download_task(thread_id, sec_id, user_id, task_id):
-    try:
-        # 更新线程状态为运行中
-        threads_info[thread_id]["status"] = "运行中"
+    # 在线程内创建应用上下文
+    with app.app_context():
+        try:
+            print(f"开始下载用户{sec_id}的视频")
+            # 更新线程状态为运行中
+            threads_info[thread_id]["status"] = "运行中"
+            
+            # 更新数据库任务状态
+            task = DownloadTask.query.get(task_id)
+            if task:
+                task.status = "运行中"
+                db.session.commit()
+            
+            # 调用下载函数并获取视频信息
+            videos_info = download_user_videos(sec_id, task_id, user_id)
+            
+            # 更新视频下载计数
+            if videos_info and isinstance(videos_info, list):
+                threads_info[thread_id]["videos_downloaded"] = len(videos_info)
+            
+            # 更新线程状态为已完成
+            threads_info[thread_id]["status"] = "已完成"
+            
+            # 更新数据库任务状态
+            if task:
+                task.status = "已完成"
+                db.session.commit()
         
-        # 更新数据库任务状态
-        task = DownloadTask.query.get(task_id)
-        if task:
-            task.status = "运行中"
-            db.session.commit()
-        
-        # 调用下载函数并获取视频信息
-        videos_info = download_user_videos(sec_id, task_id, user_id)
-        
-        # 更新视频下载计数
-        if videos_info and isinstance(videos_info, list):
-            threads_info[thread_id]["videos_downloaded"] = len(videos_info)
-        
-        # 更新线程状态为已完成
-        threads_info[thread_id]["status"] = "已完成"
-        
-        # 更新数据库任务状态
-        if task:
-            task.status = "已完成"
-            db.session.commit()
-    
-    except Exception as e:
-        # 更新线程状态为出错
-        threads_info[thread_id]["status"] = "出错"
-        threads_info[thread_id]["error"] = str(e)
-        
-        # 更新数据库任务状态
-        task = DownloadTask.query.get(task_id)
-        if task:
-            task.status = "出错"
-            task.error = str(e)
-            db.session.commit()
+        except Exception as e:
+            # 更新线程状态为出错
+            threads_info[thread_id]["status"] = "出错"
+            threads_info[thread_id]["error"] = str(e)
+            
+            # 更新数据库任务状态
+            with app.app_context():  # 添加额外的上下文以防异常发生后上下文已关闭
+                task = DownloadTask.query.get(task_id)
+                if task:
+                    task.status = "出错"
+                    task.error = str(e)
+                    db.session.commit()
 
 if __name__ == '__main__':
     # 启用调试模式实现热更新

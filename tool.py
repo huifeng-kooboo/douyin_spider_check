@@ -40,6 +40,7 @@ def download_user_videos(sec_uid, task_id=None, user_id=None):
     返回:
         list: 下载的视频信息列表
     """
+    print(f"[ToRecord]开始下载用户{sec_uid}的视频")
     dy_util = DouYinUtil(sec_uid=sec_uid)
     all_video_list = dy_util.get_all_videos()
     downloaded_videos = []
