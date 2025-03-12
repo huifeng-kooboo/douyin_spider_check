@@ -6,8 +6,8 @@ import urllib.request
 import argparse
 import pandas as pd
 
-from tools.util import get_current_time_format, generate_url_with_xbs, sleep_random
-from config import IS_SAVE, SAVE_FOLDER, USER_SEC_UID, IS_WRITE_TO_CSV, LOGIN_COOKIE, CSV_FILE_NAME
+from util.tools.util import get_current_time_format, generate_url_with_xbs, sleep_random
+from util.config import IS_SAVE, SAVE_FOLDER, USER_SEC_UID, IS_WRITE_TO_CSV, LOGIN_COOKIE, CSV_FILE_NAME
 import requests
 
 import logging
