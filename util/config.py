@@ -5,5 +5,13 @@ USER_SEC_UID = 'MS4wLjABAAAAudTtGsKUxcy2y3FxXlZe-u1gLScN2-zBTkr9hfgg7Gs'  # 需�
 IS_SAVE = True  # 是否需要保存视频文件 True:保存 ， False: 不保存
 SAVE_FOLDER = '/www/wwwroot/download'  # 视频下载保存的文件夹地址[推荐写完整的路径]
 
-IS_WRITE_TO_CSV = False  # ToDo: 是否需要记录到CSV文件 False: 不保存，True:保存
+IS_WRITE_TO_CSV = True  # ToDo: 是否需要记录到CSV文件 False: 不保存，True:保存
 CSV_FILE_NAME = '/www/wwwroot/demo.csv'  # ToDo: 保存到CSV的文件名
+
+
+import os
+
+# 判断当前是否为mac系统
+if os.name == 'posix':
+    SAVE_FOLDER = '/Users/duhuifeng/code/download'
+    CSV_FILE_NAME = '/Users/duhuifeng/code/demo.csv'
