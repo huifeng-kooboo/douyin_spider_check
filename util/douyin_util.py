@@ -6,8 +6,8 @@ import urllib.request
 import argparse
 import pandas as pd
 
-from util.tools.util import get_current_time_format, generate_url_with_xbs, sleep_random
-from util.config import IS_SAVE, SAVE_FOLDER, USER_SEC_UID, IS_WRITE_TO_CSV, LOGIN_COOKIE, CSV_FILE_NAME
+from tools.util import get_current_time_format, generate_url_with_xbs, sleep_random
+from config import IS_SAVE, SAVE_FOLDER, USER_SEC_UID, IS_WRITE_TO_CSV, LOGIN_COOKIE, CSV_FILE_NAME
 import requests
 
 import logging
@@ -189,44 +189,70 @@ class DouYinUtil(object):
 if __name__ == '__main__':
     import sys
     logger.info("有问题请联系微信：ytouching （备注来意！！！！！！！！！！！！！！！！！！！！！）")
-    params_list_size = len(sys.argv)
-    if params_list_size == 2:
-        USER_SEC_UID = sys.argv[1]
-    elif params_list_size == 3:
-        USER_SEC_UID = sys.argv[1]
-        SAVE_FOLDER = sys.argv[2]
+    sec_ids = [
+    "MS4wLjABAAAAfwC4FNWTyjrCI05j514BEhZgodntZCCMMKP3fEk20PYdlkAVWzn0EAqHTUpqTiH1",
+    "MS4wLjABAAAAFAF36d5hKBnA74iq_toEEBrSCff07mudC3oZOdY4nVqRL0QCeD-n6KJMvxHsB6lM",
+    "MS4wLjABAAAAohVm6-PayCV2NeT8yaurUd-HvOS3YW7HLFbU2LfFN6NGLjgonkcQGTdqGKB_LnzU",
+    "MS4wLjABAAAArDbPwEQ2-blopFAhCthfWmwXTeZM3QfJaW3hZNT3EsoMEcJrwLMvy7XU6y14iR9O",
+    "MS4wLjABAAAAdt1dNzq23RsPR3isjQRBUazfFYWWRd8nyPnJni0g_r0",
+    "MS4wLjABAAAA8vwd_A2Ft3LarCNk38HXWvOhXIh2ZsF2pWnn9j5EMRIujMCZpiOSecRS4B0wvVuS",
+    "MS4wLjABAAAAiqWtQKLA8StUOm3Z5abbxodZg7AyEUeMlpQDzChL7Y0o6ygcRe_O3TTo2FRwKmMy",
+    "MS4wLjABAAAABioHQCe9sw_NYkBXdHa23PMHm1qCxMtFZdg6C7_1Pp2BACa8ME_bzzsmAdhc3pqL",
+    "MS4wLjABAAAA-4fKwdw3AFO6CY0A97AAasJdfwOaQFBobyJ8Vk0y4zdH5UET79gdskwp-jYrQWDi",
+    "MS4wLjABAAAANzGtzHGOtFZCEnV3XypfciET73xOEHhbc2iFyx14sjO3pNjb7cnt8voMgJdtUl4L",
+    "MS4wLjABAAAAEcNs6zzDj7ofHRYpxoE-LbGuZlL_-dKGPwn-DEZ9zg0",
+    "MS4wLjABAAAAah62GbBN8fQXHTYIT18z6BV3HB5wt4_H5tYyYn_3Npy56HxUx3uEOk5a5VIL5_Bn",
+    "MS4wLjABAAAA3vvQZ2F1UkKzRbcl4zrypMlx3n6345y0EeEpIZf72aA",
+    "MS4wLjABAAAAVgStqIhIyX1HyzcEFHOEPi6BQCYjw1HrHeppCwmWM_k",
+    "MS4wLjABAAAAO1PVQMxBsB3audKz5pc5Cm6eQ368wk3oJmw4mK5HgkDWd2JO2ClvRtvY6m_3CJc9",
+    "MS4wLjABAAAAQN85UyUcpsi_9VlrskDNzOOo7kTccAYHycj9fn8dSU4",
+    "MS4wLjABAAAAsJmdMboFgYWqXCzExzO9WwlytavU2A8IniUMgwpyAhMnjxi-9fcgU474cRZGo5o0",
+    "MS4wLjABAAAAhtCelSgwzK1ZosNsMgYGSWuftfrBg472xO8qFFjYFMnFzPb08zB0zsx8qTaoDJeE",
+    "MS4wLjABAAAAV74QxZyGavgsZwvtKO0EfOY87-ZyfU_0M9fWl7VwWNH-vk7TNwnzbxnMgG5Qphda",
+    "MS4wLjABAAAAADo6DBTTU7QwJ9E54WwS4nlsO9Y0jm6j88gWpA5-rm0",
+    "MS4wLjABAAAAnqxgTt0uwh1CIKVhzDCA45hXqN9wLUz_N5rW-b2EHME",
+    "MS4wLjABAAAAfJCwsItqbHTARZ3AdcPKCngvQQD1Rml-lE9TpjP9o9fcI_XeZLm0-mIcArslZ-vT",
+    "MS4wLjABAAAAr4GH4iJraDRWlpLAGO5mEqEOl0VYLz9FzZrSXmp1vvFQ0JX8H_gTKEJH7YF6cvyC",
+    "MS4wLjABAAAAUbxcnzAjexXMGet8fyXcakK2-G7An1-_2Bxqlg4JC4EFOflnfuXx032yVPSXKIyM",
+    "MS4wLjABAAAAWzVO_Kt-uvi8lTCVo17KmsLkKOs7a4WlkCxGzVytWkGGF7flXWMap35sxiURj2cL",
+    "MS4wLjABAAAAdXNU5N0mJFlKyONz-OcIAXkmKd-NJo78Zs7NENSZHE2u7w_ol4hfx1Hdzw2M6bZF"
+ ]
+    for sec in sec_ids:
+        params_list_size = len(sys.argv)
+        USER_SEC_UID = sec
 
-    print(f"当前传入的参数：SEC_ID：{USER_SEC_UID}\n SAVE_FOLDER:{SAVE_FOLDER}")
-    if not os.path.exists(SAVE_FOLDER):
-        os.mkdir(SAVE_FOLDER)
+        print(f"当前传入的参数：SEC_ID：{USER_SEC_UID}\n SAVE_FOLDER:{SAVE_FOLDER}")
+        if not os.path.exists(SAVE_FOLDER):
+            os.mkdir(SAVE_FOLDER)
 
-    dy_util = DouYinUtil(sec_uid=USER_SEC_UID)
-    all_video_list = dy_util.get_all_videos()
-    print(f"当前需要下载的视频列表数量为:{len(all_video_list)}")
-    csvVideos = []
-    for video_id in all_video_list:
-        video_info = dy_util.get_video_detail_info(video_id)
-        if video_info['is_video'] is True:
-            logger.info(f"video_link:{video_info['link']}")
-            dy_util.download_video(video_info['link'], f"{video_id}.mp4")
-        if video_info["is_video"] is False:
-            dy_util.download_images(video_info["link"], f"{video_id}")
-        title = video_info["title"]
-        preview_title = video_info["preview_title"]
-        logger.info(f"file:{video_id}.mp4,title:{title} , preview_title:{preview_title}")
-        video_info["link"] = video_id
-        video_info["video_id"] = f"id:{video_id}"
-        csvVideos.append(video_info)
-    try:
-        data = pd.DataFrame(csvVideos)
-        csvHeaders = ["视频id", "视频链接", "是否为视频", "标题", "点赞数", "评论数", "视频封面", "发布日期",
+        dy_util = DouYinUtil(sec_uid=USER_SEC_UID)
+        all_video_list = dy_util.get_all_videos()
+        print(f"当前需要下载的视频列表数量为:{len(all_video_list)}")
+        csvVideos = []
+        for video_id in all_video_list:
+            video_info = dy_util.get_video_detail_info(video_id)
+            if video_info['is_video'] is True:
+                logger.info(f"video_link:{video_info['link']}")
+                dy_util.download_video(video_info['link'], f"{video_id}.mp4")
+            if video_info["is_video"] is False:
+                dy_util.download_images(video_info["link"], f"{video_id}")
+            title = video_info["title"]
+            preview_title = video_info["preview_title"]
+            logger.info(f"file:{video_id}.mp4,title:{title} , preview_title:{preview_title}")
+            video_info["link"] = video_id
+            video_info["video_id"] = f"id:{video_id}"
+            csvVideos.append(video_info)
+        try:
+            CSV_FILE_NAME = f'/Users/duhuifeng/code/csv/sec_{USER_SEC_UID}.csv'
+            data = pd.DataFrame(csvVideos)
+            csvHeaders = ["视频id", "视频链接", "是否为视频", "标题", "点赞数", "评论数", "视频封面", "发布日期",
                       "更新日期",
                       "预览标题"]
-        data.to_csv(CSV_FILE_NAME, header=csvHeaders, index=False, mode='a+', encoding='utf-8')
-        try:
-            data.to_csv(CSV_FILE_NAME, header=False, index=False, mode='a+', encoding='utf-8')
-        except UnicodeEncodeError:
-            logger.info("编码错误, 该数据无法写到文件中, 直接忽略该数据")
-    except Exception as e:
-        logger.info(e)
+            data.to_csv(CSV_FILE_NAME, header=csvHeaders, index=False, mode='a+', encoding='utf-8')
+            try:
+                data.to_csv(CSV_FILE_NAME, header=False, index=False, mode='a+', encoding='utf-8')
+            except UnicodeEncodeError:
+                logger.info("编码错误, 该数据无法写到文件中, 直接忽略该数据")
+        except Exception as e:
+            logger.info(e)
 
