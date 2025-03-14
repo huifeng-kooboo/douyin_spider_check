@@ -37,5 +37,5 @@ def generate_url_with_xbs(url, user_agent):
     :return:
     """
     query = urllib.parse.urlparse(url).query
-    x_bogus = execjs.compile(open('util/tools/X-Bogus.js').read()).call('sign', query, user_agent)
+    x_bogus = execjs.compile(open('tools/X-Bogus.js').read()).call('sign', query, user_agent)
     return x_bogus

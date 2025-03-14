@@ -5,6 +5,7 @@ import os
 import urllib.request
 import argparse
 import pandas as pd
+import csv
 
 from tools.util import get_current_time_format, generate_url_with_xbs, sleep_random
 from config import IS_SAVE, SAVE_FOLDER, USER_SEC_UID, IS_WRITE_TO_CSV, LOGIN_COOKIE, CSV_FILE_NAME
@@ -84,6 +85,7 @@ class DouYinUtil(object):
         :param file_name: 视频保存文件名: 默认为空
         :return:
         """
+        logger.info(f"下载视频: {video_url}")
         if not self.is_save:
             logger.info("当前不需要保存")
             return
@@ -188,7 +190,39 @@ class DouYinUtil(object):
 
 if __name__ == '__main__':
     import sys
+    
     logger.info("有问题请联系微信：ytouching （备注来意！！！！！！！！！！！！！！！！！！！！！）")
+    
+    # 读取 repeat.csv 文件，获取需要下载的视频ID列表
+    repeat_video_ids = set()
+    try:
+        repeat_csv_path = 'repeat.csv'
+        if os.path.exists(repeat_csv_path):
+            with open(repeat_csv_path, 'r', encoding='utf-8') as f:
+                csv_reader = csv.reader(f)
+                # 跳过标题行（如果有）
+                try:
+                    header = next(csv_reader)
+                except StopIteration:
+                    pass
+                
+                # 读取第一列的视频ID
+                for row in csv_reader:
+                    if row and len(row) > 0:
+                        # 移除可能的文件扩展名
+                        video_id = row[0].replace('.mp4', '')
+                        repeat_video_ids.add(video_id)
+            
+            logger.info(f"从repeat.csv中读取到 {len(repeat_video_ids)} 个需要下载的视频ID")
+        else:
+            logger.warning(f"repeat.csv文件不存在，将下载所有视频")
+    except Exception as e:
+        logger.error(f"读取repeat.csv文件时出错: {e}")
+        logger.warning("将下载所有视频")
+    
+    # 是否只下载重复视频
+    only_download_repeat_videos = len(repeat_video_ids) > 0
+    
     sec_ids = [
     "MS4wLjABAAAAfwC4FNWTyjrCI05j514BEhZgodntZCCMMKP3fEk20PYdlkAVWzn0EAqHTUpqTiH1",
     "MS4wLjABAAAAFAF36d5hKBnA74iq_toEEBrSCff07mudC3oZOdY4nVqRL0QCeD-n6KJMvxHsB6lM",
@@ -228,8 +262,18 @@ if __name__ == '__main__':
         dy_util = DouYinUtil(sec_uid=USER_SEC_UID)
         all_video_list = dy_util.get_all_videos()
         print(f"当前需要下载的视频列表数量为:{len(all_video_list)}")
+        
+        # 计算符合条件的视频数量
+        if only_download_repeat_videos:
+            matching_videos = [v for v in all_video_list if v in repeat_video_ids]
+            print(f"其中有 {len(matching_videos)} 个视频在repeat.csv中，只下载这些视频")
+        
         csvVideos = []
         for video_id in all_video_list:
+            # 添加判断逻辑：如果启用了过滤，且视频ID不在repeat.csv的第一列中，则跳过
+            if only_download_repeat_videos and video_id not in repeat_video_ids:
+                continue
+                
             video_info = dy_util.get_video_detail_info(video_id)
             if video_info['is_video'] is True:
                 logger.info(f"video_link:{video_info['link']}")

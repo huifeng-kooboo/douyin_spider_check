@@ -15,3 +15,4 @@ import os
 if os.name == 'posix':
     SAVE_FOLDER = '/Users/duhuifeng/code/download'
     CSV_FILE_NAME = '/Users/duhuifeng/code/demo.csv'
+    
