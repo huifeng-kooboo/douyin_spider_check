@@ -6,6 +6,7 @@ import urllib.request
 import argparse
 import pandas as pd
 import csv
+from datetime import datetime
 
 from tools.util import get_current_time_format, generate_url_with_xbs, sleep_random
 from config import IS_SAVE, SAVE_FOLDER, USER_SEC_UID, IS_WRITE_TO_CSV, LOGIN_COOKIE, CSV_FILE_NAME
@@ -193,35 +194,13 @@ if __name__ == '__main__':
     
     logger.info("有问题请联系微信：ytouching （备注来意！！！！！！！！！！！！！！！！！！！！！）")
     
-    # 读取 repeat.csv 文件，获取需要下载的视频ID列表
-    repeat_video_ids = set()
-    try:
-        repeat_csv_path = 'repeat.csv'
-        if os.path.exists(repeat_csv_path):
-            with open(repeat_csv_path, 'r', encoding='utf-8') as f:
-                csv_reader = csv.reader(f)
-                # 跳过标题行（如果有）
-                try:
-                    header = next(csv_reader)
-                except StopIteration:
-                    pass
-                
-                # 读取第一列的视频ID
-                for row in csv_reader:
-                    if row and len(row) > 0:
-                        # 移除可能的文件扩展名
-                        video_id = row[0].replace('.mp4', '')
-                        repeat_video_ids.add(video_id)
-            
-            logger.info(f"从repeat.csv中读取到 {len(repeat_video_ids)} 个需要下载的视频ID")
-        else:
-            logger.warning(f"repeat.csv文件不存在，将下载所有视频")
-    except Exception as e:
-        logger.error(f"读取repeat.csv文件时出错: {e}")
-        logger.warning("将下载所有视频")
+    # 设置日期过滤范围
+    start_date = datetime.strptime("2024-07-30", "%Y-%m-%d")
+    end_date = datetime.strptime("2024-09-16", "%Y-%m-%d")
+    logger.info(f"将只下载发布日期在 {start_date.strftime('%Y-%m-%d')} 到 {end_date.strftime('%Y-%m-%d')} 之间的视频")
     
-    # 是否只下载重复视频
-    only_download_repeat_videos = len(repeat_video_ids) > 0
+    # 用于统计日期范围内的视频总数
+    total_videos_in_date_range = 0
     
     sec_ids = [
     "MS4wLjABAAAAfwC4FNWTyjrCI05j514BEhZgodntZCCMMKP3fEk20PYdlkAVWzn0EAqHTUpqTiH1",
@@ -263,18 +242,28 @@ if __name__ == '__main__':
         all_video_list = dy_util.get_all_videos()
         print(f"当前需要下载的视频列表数量为:{len(all_video_list)}")
         
-        # 计算符合条件的视频数量
-        if only_download_repeat_videos:
-            matching_videos = [v for v in all_video_list if v in repeat_video_ids]
-            print(f"其中有 {len(matching_videos)} 个视频在repeat.csv中，只下载这些视频")
+        # 当前用户在日期范围内的视频数
+        user_videos_in_date_range = 0
         
         csvVideos = []
         for video_id in all_video_list:
-            # 添加判断逻辑：如果启用了过滤，且视频ID不在repeat.csv的第一列中，则跳过
-            if only_download_repeat_videos and video_id not in repeat_video_ids:
-                continue
-                
             video_info = dy_util.get_video_detail_info(video_id)
+            
+            # 检查发布日期是否在指定范围内
+            publish_time = video_info.get('publish_time', '')
+            if publish_time:
+                try:
+                    publish_date = datetime.strptime(publish_time, "%Y-%m-%d %H:%M:%S")
+                    if not (start_date <= publish_date <= end_date):
+                        logger.info(f"视频 {video_id} 的发布日期 {publish_time} 不在指定范围内，跳过下载")
+                        continue
+                    else:
+                        logger.info(f"视频 {video_id} 的发布日期 {publish_time} 在指定范围内，将下载")
+                        user_videos_in_date_range += 1
+                        total_videos_in_date_range += 1
+                except ValueError as e:
+                    logger.error(f"解析发布日期出错: {e}，将继续下载")
+            
             if video_info['is_video'] is True:
                 logger.info(f"video_link:{video_info['link']}")
                 dy_util.download_video(video_info['link'], f"{video_id}.mp4")
@@ -286,6 +275,9 @@ if __name__ == '__main__':
             video_info["link"] = video_id
             video_info["video_id"] = f"id:{video_id}"
             csvVideos.append(video_info)
+        
+        print(f"用户 {USER_SEC_UID} 在 {start_date.strftime('%Y-%m-%d')} 到 {end_date.strftime('%Y-%m-%d')} 期间发布了 {user_videos_in_date_range} 个视频")
+        
         try:
             CSV_FILE_NAME = f'/Users/duhuifeng/code/csv/sec_{USER_SEC_UID}.csv'
             data = pd.DataFrame(csvVideos)
@@ -299,4 +291,7 @@ if __name__ == '__main__':
                 logger.info("编码错误, 该数据无法写到文件中, 直接忽略该数据")
         except Exception as e:
             logger.info(e)
+    
+    # 输出统计结果
+    print(f"\n统计结果：在 {start_date.strftime('%Y-%m-%d')} 到 {end_date.strftime('%Y-%m-%d')} 期间，所有用户共发布了 {total_videos_in_date_range} 个视频")
 
