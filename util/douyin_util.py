@@ -63,15 +63,16 @@ class DouYinUtil(object):
             self.video_api_url = f'https://www.douyin.com/aweme/v1/web/aweme/post/?aid=6383&sec_user_id={self.sec_uid}&count=35&max_cursor={self.cursor}&cookie_enabled=true&platform=PC&downlink=10'
             xbs = generate_url_with_xbs(self.video_api_url, self.api_headers.get('User-Agent'))
             user_video_url = self.video_api_url + '&X-Bogus=' + xbs
-            print(f'访问url:{user_video_url}')
+            # print(f'访问url:{user_video_url}')
             user_info = self.get_user_video_info(user_video_url)   
             aweme_list = user_info['aweme_list']
             for aweme_info in aweme_list:
+                # print(f'视频信息如下:{aweme_info}')
                 self.video_info_list.append(aweme_info)
                 self.video_info_dict.setdefault(aweme_info['aweme_id'], aweme_info)
                 self.videos_list.append(aweme_info['aweme_id'])
             if int(user_info['has_more']) == 0:
-                print(f'stop_more')
+                print(f'获取完整视频列表完成')
                 self.stop_flag = True
             else:
                 self.cursor = user_info['max_cursor']
@@ -169,6 +170,8 @@ class DouYinUtil(object):
         res_info = self.video_info_dict.get(video_id, None)
         if res_info is None:
             return default_response
+        default_response['nick_name'] = res_info['author']['nickname']
+        print(f'nick_name:{res_info}')
         default_response['title'] = res_info['desc']
         if res_info.get('preview_title') is not None:
             default_response["preview_title"] = res_info["preview_title"]
@@ -188,6 +191,25 @@ class DouYinUtil(object):
         default_response['comment_num'] = res_info['statistics']['comment_count']
         return default_response
 
+    def save_video_info_dict(self, save_path="D:\\result\\video.json"):
+        """
+        将视频信息字典保存到本地JSON文件
+        :param save_path: 保存路径，默认为D:\\result\\video.json
+        :return:
+        """
+        # 确保目录存在
+        save_dir = os.path.dirname(save_path)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        
+        # 将字典转换为JSON并保存
+        try:
+            with open(save_path, 'w', encoding='utf-8') as f:
+                json.dump(self.video_info_dict, f, ensure_ascii=False, indent=4)
+            logger.info(f"已成功将视频信息字典保存到 {save_path}")
+        except Exception as e:
+            logger.error(f"保存视频信息字典到 {save_path} 时出错: {e}")
+
 
 if __name__ == '__main__':
     import sys
@@ -203,33 +225,33 @@ if __name__ == '__main__':
     total_videos_in_date_range = 0
     
     sec_ids = [
-    # "MS4wLjABAAAAfwC4FNWTyjrCI05j514BEhZgodntZCCMMKP3fEk20PYdlkAVWzn0EAqHTUpqTiH1",
-    # "MS4wLjABAAAAFAF36d5hKBnA74iq_toEEBrSCff07mudC3oZOdY4nVqRL0QCeD-n6KJMvxHsB6lM",
-    # "MS4wLjABAAAAohVm6-PayCV2NeT8yaurUd-HvOS3YW7HLFbU2LfFN6NGLjgonkcQGTdqGKB_LnzU",
-    # "MS4wLjABAAAArDbPwEQ2-blopFAhCthfWmwXTeZM3QfJaW3hZNT3EsoMEcJrwLMvy7XU6y14iR9O",
-    # "MS4wLjABAAAAdt1dNzq23RsPR3isjQRBUazfFYWWRd8nyPnJni0g_r0",
-    # "MS4wLjABAAAA8vwd_A2Ft3LarCNk38HXWvOhXIh2ZsF2pWnn9j5EMRIujMCZpiOSecRS4B0wvVuS",
-    # "MS4wLjABAAAAiqWtQKLA8StUOm3Z5abbxodZg7AyEUeMlpQDzChL7Y0o6ygcRe_O3TTo2FRwKmMy",
-    # "MS4wLjABAAAABioHQCe9sw_NYkBXdHa23PMHm1qCxMtFZdg6C7_1Pp2BACa8ME_bzzsmAdhc3pqL",
-    # "MS4wLjABAAAA-4fKwdw3AFO6CY0A97AAasJdfwOaQFBobyJ8Vk0y4zdH5UET79gdskwp-jYrQWDi",
-    # "MS4wLjABAAAANzGtzHGOtFZCEnV3XypfciET73xOEHhbc2iFyx14sjO3pNjb7cnt8voMgJdtUl4L",
-    # "MS4wLjABAAAAEcNs6zzDj7ofHRYpxoE-LbGuZlL_-dKGPwn-DEZ9zg0",
-    # "MS4wLjABAAAAah62GbBN8fQXHTYIT18z6BV3HB5wt4_H5tYyYn_3Npy56HxUx3uEOk5a5VIL5_Bn",
-    # "MS4wLjABAAAA3vvQZ2F1UkKzRbcl4zrypMlx3n6345y0EeEpIZf72aA",
-    # "MS4wLjABAAAAVgStqIhIyX1HyzcEFHOEPi6BQCYjw1HrHeppCwmWM_k",
-    # "MS4wLjABAAAAO1PVQMxBsB3audKz5pc5Cm6eQ368wk3oJmw4mK5HgkDWd2JO2ClvRtvY6m_3CJc9",
-    # "MS4wLjABAAAAQN85UyUcpsi_9VlrskDNzOOo7kTccAYHycj9fn8dSU4",
-    # "MS4wLjABAAAAsJmdMboFgYWqXCzExzO9WwlytavU2A8IniUMgwpyAhMnjxi-9fcgU474cRZGo5o0",
-    # "MS4wLjABAAAAhtCelSgwzK1ZosNsMgYGSWuftfrBg472xO8qFFjYFMnFzPb08zB0zsx8qTaoDJeE",
-    # "MS4wLjABAAAAV74QxZyGavgsZwvtKO0EfOY87-ZyfU_0M9fWl7VwWNH-vk7TNwnzbxnMgG5Qphda",
-    # "MS4wLjABAAAAADo6DBTTU7QwJ9E54WwS4nlsO9Y0jm6j88gWpA5-rm0",
-    # "MS4wLjABAAAAnqxgTt0uwh1CIKVhzDCA45hXqN9wLUz_N5rW-b2EHME",
-    # "MS4wLjABAAAAfJCwsItqbHTARZ3AdcPKCngvQQD1Rml-lE9TpjP9o9fcI_XeZLm0-mIcArslZ-vT",
-    # "MS4wLjABAAAAr4GH4iJraDRWlpLAGO5mEqEOl0VYLz9FzZrSXmp1vvFQ0JX8H_gTKEJH7YF6cvyC",
-    # "MS4wLjABAAAAUbxcnzAjexXMGet8fyXcakK2-G7An1-_2Bxqlg4JC4EFOflnfuXx032yVPSXKIyM",
-   #  "MS4wLjABAAAAWzVO_Kt-uvi8lTCVo17KmsLkKOs7a4WlkCxGzVytWkGGF7flXWMap35sxiURj2cL",
+    "MS4wLjABAAAAfwC4FNWTyjrCI05j514BEhZgodntZCCMMKP3fEk20PYdlkAVWzn0EAqHTUpqTiH1",
+    "MS4wLjABAAAAFAF36d5hKBnA74iq_toEEBrSCff07mudC3oZOdY4nVqRL0QCeD-n6KJMvxHsB6lM",
+    "MS4wLjABAAAAohVm6-PayCV2NeT8yaurUd-HvOS3YW7HLFbU2LfFN6NGLjgonkcQGTdqGKB_LnzU",
+    "MS4wLjABAAAArDbPwEQ2-blopFAhCthfWmwXTeZM3QfJaW3hZNT3EsoMEcJrwLMvy7XU6y14iR9O",
+    "MS4wLjABAAAAdt1dNzq23RsPR3isjQRBUazfFYWWRd8nyPnJni0g_r0",
+    "MS4wLjABAAAA8vwd_A2Ft3LarCNk38HXWvOhXIh2ZsF2pWnn9j5EMRIujMCZpiOSecRS4B0wvVuS",
+    "MS4wLjABAAAAiqWtQKLA8StUOm3Z5abbxodZg7AyEUeMlpQDzChL7Y0o6ygcRe_O3TTo2FRwKmMy",
+    "MS4wLjABAAAABioHQCe9sw_NYkBXdHa23PMHm1qCxMtFZdg6C7_1Pp2BACa8ME_bzzsmAdhc3pqL",
+    "MS4wLjABAAAA-4fKwdw3AFO6CY0A97AAasJdfwOaQFBobyJ8Vk0y4zdH5UET79gdskwp-jYrQWDi",
+    "MS4wLjABAAAANzGtzHGOtFZCEnV3XypfciET73xOEHhbc2iFyx14sjO3pNjb7cnt8voMgJdtUl4L",
+    "MS4wLjABAAAAEcNs6zzDj7ofHRYpxoE-LbGuZlL_-dKGPwn-DEZ9zg0",
+    "MS4wLjABAAAAah62GbBN8fQXHTYIT18z6BV3HB5wt4_H5tYyYn_3Npy56HxUx3uEOk5a5VIL5_Bn",
+    "MS4wLjABAAAA3vvQZ2F1UkKzRbcl4zrypMlx3n6345y0EeEpIZf72aA",
+    "MS4wLjABAAAAVgStqIhIyX1HyzcEFHOEPi6BQCYjw1HrHeppCwmWM_k",
+    "MS4wLjABAAAAO1PVQMxBsB3audKz5pc5Cm6eQ368wk3oJmw4mK5HgkDWd2JO2ClvRtvY6m_3CJc9",
+    "MS4wLjABAAAAQN85UyUcpsi_9VlrskDNzOOo7kTccAYHycj9fn8dSU4",
+    "MS4wLjABAAAAsJmdMboFgYWqXCzExzO9WwlytavU2A8IniUMgwpyAhMnjxi-9fcgU474cRZGo5o0",
+    "MS4wLjABAAAAhtCelSgwzK1ZosNsMgYGSWuftfrBg472xO8qFFjYFMnFzPb08zB0zsx8qTaoDJeE",
+    "MS4wLjABAAAAV74QxZyGavgsZwvtKO0EfOY87-ZyfU_0M9fWl7VwWNH-vk7TNwnzbxnMgG5Qphda",
+    "MS4wLjABAAAAADo6DBTTU7QwJ9E54WwS4nlsO9Y0jm6j88gWpA5-rm0",
+    "MS4wLjABAAAAnqxgTt0uwh1CIKVhzDCA45hXqN9wLUz_N5rW-b2EHME",
+    "MS4wLjABAAAAfJCwsItqbHTARZ3AdcPKCngvQQD1Rml-lE9TpjP9o9fcI_XeZLm0-mIcArslZ-vT",
+    "MS4wLjABAAAAr4GH4iJraDRWlpLAGO5mEqEOl0VYLz9FzZrSXmp1vvFQ0JX8H_gTKEJH7YF6cvyC",
+    "MS4wLjABAAAAUbxcnzAjexXMGet8fyXcakK2-G7An1-_2Bxqlg4JC4EFOflnfuXx032yVPSXKIyM",
+    "MS4wLjABAAAAWzVO_Kt-uvi8lTCVo17KmsLkKOs7a4WlkCxGzVytWkGGF7flXWMap35sxiURj2cL",
     "MS4wLjABAAAAdXNU5N0mJFlKyONz-OcIAXkmKd-NJo78Zs7NENSZHE2u7w_ol4hfx1Hdzw2M6bZF"
- ]
+    ]
     for sec in sec_ids:
         params_list_size = len(sys.argv)
         USER_SEC_UID = sec
@@ -242,12 +264,18 @@ if __name__ == '__main__':
         all_video_list = dy_util.get_all_videos()
         print(f"当前需要下载的视频列表数量为:{len(all_video_list)}")
         
+        # 保存视频信息字典到本地
+        dy_util.save_video_info_dict(f"D:\\result\\video_{USER_SEC_UID}.json")
+
+        continue
+        
         # 当前用户在日期范围内的视频数
         user_videos_in_date_range = 0
         
         csvVideos = []
         for video_id in all_video_list:
             video_info = dy_util.get_video_detail_info(video_id)
+            print(f"视频信息:{video_info}")
             
             # 检查发布日期是否在指定范围内
             publish_time = video_info.get('publish_time', '')
